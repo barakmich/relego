@@ -10,6 +10,16 @@ var (
 	pipeline = []Pipe{
 		MkWorkDir,
 		GoBuild,
+		CopyFiles,
+		Compress,
+		Cleanup,
+	}
+	srcPipeline = []Pipe{
+		MkWorkDir,
+		Glide,
+		SrcBuild,
+		Compress,
+		Cleanup,
 	}
 )
 

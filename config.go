@@ -28,7 +28,14 @@ type Target struct {
 	Opt      map[string]interface{}
 }
 
+func (t Target) IsSrc() bool {
+	return t.Platform == "source" || t.Platform == "src"
+}
+
 func (t Target) String() string {
+	if t.IsSrc() {
+		return fmt.Sprintf("%s_v%s_src", t.Config.Name, t.Config.version)
+	}
 	return fmt.Sprintf("%s_v%s_%s_%s", t.Config.Name, t.Config.version, t.Platform, t.Arch)
 }
 
@@ -57,7 +64,7 @@ type Config struct {
 	Mains     []string      `yaml:"mains"`
 	Include   []string      `yaml:"include"`
 	OutputDir string        `yaml:"outputDir"`
-	LD        *LDConfig     `yaml:"ld"`
+	LD        *LDConfig     `yaml:"ld,omitempty"`
 	version   string
 	buildDate time.Time
 }
@@ -98,6 +105,7 @@ func (c *Config) FillDefaults(path string) error {
 	if len(c.OutputDir) == 0 {
 		c.OutputDir = "."
 	}
+	c.OutputDir = os.ExpandEnv(c.OutputDir)
 	c.buildDate = time.Now()
 	c.version = version
 	if c.version == "" {

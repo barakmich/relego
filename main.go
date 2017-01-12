@@ -28,9 +28,9 @@ func main() {
 	for _, t := range cfg.Matrix {
 		for _, a := range t.Arch {
 			matrix = append(matrix, &Target{
-				OS:     t.OS,
-				Arch:   a,
-				Config: cfg,
+				Platform: t.Platform,
+				Arch:     a,
+				Config:   cfg,
 			})
 		}
 	}

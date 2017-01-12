@@ -26,14 +26,14 @@ func GoBuild(t *Target) error {
 	}
 	workdir := wd.(string)
 	envs := os.Environ()
-	envs = append(envs, fmt.Sprintf("GOOS=%s", t.OS))
+	envs = append(envs, fmt.Sprintf("GOOS=%s", t.Platform))
 	envs = append(envs, fmt.Sprintf("GOARCH=%s", t.Arch))
 	for _, x := range t.Config.Mains {
 		binname, err := resolveBinName(x)
 		if err != nil {
 			return err
 		}
-		if t.OS == "windows" {
+		if t.Platform == "windows" {
 			binname += ".exe"
 		}
 		cmd := exec.Command("go", "build", "-o", filepath.Join(workdir, binname))

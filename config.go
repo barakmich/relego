@@ -22,14 +22,14 @@ func init() {
 }
 
 type Target struct {
-	OS     string
-	Arch   string
-	Config *Config
-	Opt    map[string]interface{}
+	Platform string
+	Arch     string
+	Config   *Config
+	Opt      map[string]interface{}
 }
 
 func (t Target) String() string {
-	return fmt.Sprintf("%s_v%s_%s_%s", t.Config.Name, t.Config.version, t.OS, t.Arch)
+	return fmt.Sprintf("%s_v%s_%s_%s", t.Config.Name, t.Config.version, t.Platform, t.Arch)
 }
 
 func (t Target) GetOpt(s string) interface{} {
@@ -47,8 +47,8 @@ func (t *Target) SetOpt(s string, i interface{}) {
 }
 
 type BuildTarget struct {
-	OS   string   `yaml:"os"`
-	Arch []string `yaml:"arch"`
+	Platform string   `yaml:"platform"`
+	Arch     []string `yaml:"arch"`
 }
 
 type Config struct {
@@ -88,7 +88,7 @@ func ReadConfig(path string) (*Config, error) {
 
 func (c *Config) FillDefaults(path string) error {
 	if len(c.Matrix) == 0 {
-		log.Printf("WARNING: No arch list provided. Using GOOS & GOARCH (%s_%s).\n", runtime.GOOS, runtime.GOARCH)
+		log.Printf("WARNING: No build matrix provided. Using GOOS & GOARCH (%s_%s).\n", runtime.GOOS, runtime.GOARCH)
 		c.Matrix = append(c.Matrix, BuildTarget{runtime.GOOS, []string{runtime.GOARCH}})
 	}
 	if len(c.Mains) == 0 {

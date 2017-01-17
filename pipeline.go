@@ -11,6 +11,7 @@ import (
 )
 
 type Pipe func(*Target) error
+type PrePipe func(*Config) error
 
 func MkWorkDir(t *Target) error {
 	workDir := filepath.Join(t.Config.OutputDir, t.String())
@@ -75,6 +76,7 @@ func CopyFiles(t *Target) error {
 	if len(t.Config.Include) == 0 {
 		return nil
 	}
+	// TODO(barakmich): mkdir
 	opts := []string{"-r"}
 	opts = append(opts, t.Config.Include...)
 	opts = append(opts, workDir.(string)+"/")
@@ -119,11 +121,8 @@ func compressTGZ(t *Target) error {
 
 func compressZip(t *Target) error {
 	zippath := filepath.Join(t.Config.OutputDir, t.String()+".zip")
-	env := []string{
-		fmt.Sprintf("PWD=%s", t.Config.OutputDir),
-	}
-	cmd := exec.Command("zip", "-r", zippath, ".", "-i", t.String())
-	cmd.Env = env
+	cmd := exec.Command("zip", "-r", zippath, ".", "-i", t.String()+"/*")
+	cmd.Dir = t.Config.OutputDir
 	b, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Println(string(b))
@@ -132,9 +131,99 @@ func compressZip(t *Target) error {
 	return nil
 }
 
-func Glide(t *Target) error {
-	panic("unimplemented")
+func Glide(cfg *Config) error {
+	if cfg.GlideConfig == nil {
+		return nil
+	}
+	gc := cfg.GlideConfig
+	run := "glide"
+	if gc.Path != "" {
+		run = gc.Path
+	}
+	cmd := exec.Command(run, "install", "--strip-vcs", "--strip-vendor", "--update-vendored", "--delete")
+	cmd.Env = os.Environ()
+	b, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(b))
+		return err
+	}
+	if gc.GlideVC {
+		run := "glide-vc"
+		if gc.GlideVCPath != "" {
+			run = gc.GlideVCPath
+		}
+		cmd := exec.Command(run, "--only-code", "--no-tests")
+		cmd.Env = os.Environ()
+		b, err := cmd.CombinedOutput()
+		if err != nil {
+			fmt.Println(string(b))
+			return err
+		}
+
+	}
+	return nil
+
 }
+
 func SrcBuild(t *Target) error {
-	panic("unimplemented")
+	wd := t.GetOpt("workDir")
+	if wd == nil {
+		return errors.New("no workDir")
+	}
+
+	// Collect
+	tempfile := filepath.Join(wd.(string), "filelist")
+	f, err := os.Create(tempfile)
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat("vendor"); err == nil {
+		cmd := exec.Command("find", "vendor")
+		cmd.Env = os.Environ()
+		cmd.Stdout = f
+		cmd.Stderr = os.Stderr
+		err = cmd.Run()
+		if err != nil {
+			fmt.Printf("couldn't run `find`: %s\n", err)
+			f.Close()
+			return err
+		}
+	}
+	cmd := exec.Command("git", "ls-files")
+	cmd.Env = os.Environ()
+	cmd.Stdout = f
+	err = cmd.Run()
+	if err != nil {
+		fmt.Printf("couldn't run `git ls-files`: %s\n", err)
+		f.Close()
+		return err
+	}
+	f.Close()
+
+	// Uniq
+	fl := filepath.Join(wd.(string), "files")
+	f, err = os.Create(fl)
+	if err != nil {
+		return err
+	}
+	cmd = exec.Command("uniq", tempfile)
+	cmd.Env = os.Environ()
+	cmd.Stdout = f
+	err = cmd.Run()
+	if err != nil {
+		fmt.Printf("couldn't run `uniq`: %s\n", err)
+		f.Close()
+		return err
+	}
+	f.Close()
+
+	// Tar
+	tarpath := filepath.Join(t.Config.OutputDir, t.String()+".tar.gz")
+	cmd = exec.Command("tar", "-cvzf", tarpath, "-T", fl, "--transform", fmt.Sprintf("s,^,%s/,", t.String()))
+	b, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Println(string(b))
+		return err
+	}
+	return nil
 }

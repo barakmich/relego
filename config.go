@@ -58,15 +58,26 @@ type BuildTarget struct {
 	Arch     []string `yaml:"arch"`
 }
 
+func (bt BuildTarget) IsSrc() bool {
+	return bt.Platform == "source" || bt.Platform == "src"
+}
+
+type GlideConfig struct {
+	Path        string `yaml:"glidePath"`
+	GlideVC     bool   `yaml:"glide-vc"`
+	GlideVCPath string `yaml:"glideVCPath"`
+}
+
 type Config struct {
-	Name      string        `yaml:"name"`
-	Matrix    []BuildTarget `yaml:"matrix"`
-	Mains     []string      `yaml:"mains"`
-	Include   []string      `yaml:"include"`
-	OutputDir string        `yaml:"outputDir"`
-	LD        *LDConfig     `yaml:"ld,omitempty"`
-	version   string
-	buildDate time.Time
+	Name        string        `yaml:"name"`
+	BuildMatrix []BuildTarget `yaml:"build"`
+	GlideConfig *GlideConfig  `yaml:"glide,omitempty"`
+	Mains       []string      `yaml:"mains"`
+	Include     []string      `yaml:"include"`
+	OutputDir   string        `yaml:"outputDir"`
+	LD          *LDConfig     `yaml:"ld,omitempty"`
+	version     string
+	buildDate   time.Time
 }
 
 type LDConfig struct {
@@ -94,9 +105,9 @@ func ReadConfig(path string) (*Config, error) {
 }
 
 func (c *Config) FillDefaults(path string) error {
-	if len(c.Matrix) == 0 {
+	if len(c.BuildMatrix) == 0 {
 		log.Printf("WARNING: No build matrix provided. Using GOOS & GOARCH (%s_%s).\n", runtime.GOOS, runtime.GOARCH)
-		c.Matrix = append(c.Matrix, BuildTarget{runtime.GOOS, []string{runtime.GOARCH}})
+		c.BuildMatrix = append(c.BuildMatrix, BuildTarget{runtime.GOOS, []string{runtime.GOARCH}})
 	}
 	if len(c.Mains) == 0 {
 		log.Printf("WARNING: No main package list provided. Using \".\".\n")
@@ -117,7 +128,6 @@ func (c *Config) FillDefaults(path string) error {
 			return err
 		}
 		c.Name = filepath.Base(filepath.Dir(abs))
-		fmt.Println(c.Name)
 	}
 	return nil
 }

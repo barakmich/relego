@@ -34,9 +34,9 @@ func (t Target) IsSrc() bool {
 
 func (t Target) String() string {
 	if t.IsSrc() {
-		return fmt.Sprintf("%s_v%s_src", t.Config.Name, t.Config.version)
+		return fmt.Sprintf("%s_%s_src", t.Config.Name, t.Config.version)
 	}
-	return fmt.Sprintf("%s_v%s_%s_%s", t.Config.Name, t.Config.version, t.Platform, t.Arch)
+	return fmt.Sprintf("%s_%s_%s_%s", t.Config.Name, t.Config.version, t.Platform, t.Arch)
 }
 
 func (t Target) GetOpt(s string) interface{} {

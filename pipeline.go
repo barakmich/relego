@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 type Pipe func(*Target) error
@@ -37,7 +38,22 @@ func GoBuild(t *Target) error {
 		if t.Platform == "windows" {
 			binname += ".exe"
 		}
-		cmd := exec.Command("go", "build", "-o", filepath.Join(workdir, binname))
+		cmds := []string{
+			"build", "-o", filepath.Join(workdir, binname),
+		}
+		if ld := t.Config.LD; ld != nil {
+			cmds = append(cmds, "-ldflags")
+			flags := ""
+			if ld.VersionPath != "" {
+				flags += fmt.Sprintf("-X %s=%s ", ld.VersionPath, t.Config.version)
+			}
+			if ld.BuildDatePath != "" {
+				flags += fmt.Sprintf("-X %s=%s", ld.BuildDatePath, t.Config.buildDate.Format(time.RFC3339))
+			}
+			cmds = append(cmds, flags)
+		}
+		cmds = append(cmds, x)
+		cmd := exec.Command("go", cmds...)
 		cmd.Env = envs
 		b, err := cmd.CombinedOutput()
 		if err != nil {

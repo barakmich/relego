@@ -194,7 +194,7 @@ func SrcBuild(t *Target) error {
 		return err
 	}
 	if _, err := os.Stat("vendor"); err == nil {
-		cmd := exec.Command("find", "vendor")
+		cmd := exec.Command("find", "vendor", "-name", ".git", "-prune", "-o", "(", "-type", "f", "-print", ")")
 		cmd.Env = os.Environ()
 		cmd.Stdout = f
 		cmd.Stderr = os.Stderr
